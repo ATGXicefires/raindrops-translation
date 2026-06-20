@@ -348,7 +348,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f005-001.png"  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「喂——久我——！」[p]
+「喂——小久我——！」[p]
 #
 [_tb_end_text]
 

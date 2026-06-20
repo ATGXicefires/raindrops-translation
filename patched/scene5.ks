@@ -759,7 +759,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f005-005.png"  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「怎麼啦～久我小子也想參加嗎～？」[p]
+「怎麼啦～小久我也想參加嗎～？」[p]
 #
 [_tb_end_text]
 

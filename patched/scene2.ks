@@ -237,7 +237,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f006-001.png"  ]
 [tb_start_text mode=1 ]
 #一之瀨 蓮
-「對吧，久我！」[p]
+「對吧，小久我！」[p]
 
 [_tb_end_text]
 
@@ -1662,7 +1662,7 @@
 [tb_chara_face_show  time="0"  storage="chara_f005-001.png"  width="300"  height="300"  x="42"  y="763"  _clickable_img=""  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「哎——不管怎樣久我太好了啊！　身體好了嘛！」[p]
+「哎——不管怎樣小久我太好了啊！　身體好了嘛！」[p]
 #
 [_tb_end_text]
 
@@ -1746,7 +1746,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f005-001.png"  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「100億太扯了吧！　久我也太誇張了！」[p]
+「100億太扯了吧！　小久我也太誇張了！」[p]
 #
 [_tb_end_text]
 

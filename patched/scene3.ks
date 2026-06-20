@@ -40,7 +40,7 @@
 [tb_chara_face_show  time="0"  storage="chara_f006-005.png"  width="300"  height="300"  x="42"  y="760"  _clickable_img=""  ]
 [tb_start_text mode=1 ]
 #一之瀨 蓮
-「喔！　是久我啊——！」[p]
+「喔！　是小久我啊——！」[p]
 #
 [_tb_end_text]
 

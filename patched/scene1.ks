@@ -1003,7 +1003,7 @@
 [tb_chara_face_show  time="0"  storage="chara_f005-001.png"  width="300"  height="300"  x="42"  y="763"  _clickable_img=""  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「說起來今天早上啊！　我在車站看到久我在騎腳踏車狂飆耶！」[p]
+「說起來今天早上啊！　我在車站看到小久我在騎腳踏車狂飆耶！」[p]
 #
 [_tb_end_text]
 
@@ -1174,14 +1174,14 @@
 [tb_chara_face_mod  time="0"  storage="chara_f005-001.png"  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「好啦好啦，沒關係嘛！　好好相處吧久我！」[p]
+「好啦好啦，沒關係嘛！　好好相處吧小久我！」[p]
 #
 [_tb_end_text]
 
 [tb_chara_face_mod  time="0"  storage="chara_f001-008.png"  ]
 [tb_start_text mode=1 ]
 #久我 聰
-「…………該不會久我指的是我吧？」[p]
+「…………該不會小久我指的是我吧？」[p]
 #
 [_tb_end_text]
 
@@ -1318,7 +1318,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f005-001.png"  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「嘛——……怎麼說呢，久我這種犀利的感覺。真是讓人印象深刻啊」[p]
+「嘛——……怎麼說呢，小久我這種犀利的感覺。真是讓人印象深刻啊」[p]
 「就是那個，讓我想起朝霧同學之前跟我們一起玩的時候」[p]
 #
 [_tb_end_text]
@@ -1365,7 +1365,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f005-003.png"  ]
 [tb_start_text mode=1 ]
 #里中 大志
-「…………啊…………等、等一下久我？　那件事就別提了好嗎？」[p]
+「…………啊…………等、等一下小久我？　那件事就別提了好嗎？」[p]
 #
 [_tb_end_text]
 
