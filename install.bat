@@ -59,16 +59,46 @@ if errorlevel 1 (
 echo [成功] 中文劇本安裝完成。
 
 :: 5. 修改 Config.tjs 字型設定
-echo [進度] 正在設定字型...
+echo.
+echo ========================================================
+echo   請選擇遊戲顯示字體：
+echo   [1] 微軟正黑體 (預設推薦，最清晰)
+echo   [2] 新細明體 (傳統風格)
+echo   [3] 標楷體
+echo   [4] 手動輸入其他字體名稱
+echo ========================================================
+set /p FONT_CHOICE="請輸入數字 (1-4) 並按 Enter (直接按 Enter 使用預設): "
+
+set "FONT_NAME=Microsoft JhengHei, 微軟正黑體, sans-serif"
+set "FONT_DESC=微軟正黑體"
+
+if "%FONT_CHOICE%"=="2" (
+    set "FONT_NAME=PMingLiU, 新細明體, serif"
+    set "FONT_DESC=新細明體"
+)
+if "%FONT_CHOICE%"=="3" (
+    set "FONT_NAME=DFKai-SB, 標楷體, serif"
+    set "FONT_DESC=標楷體"
+)
+if "%FONT_CHOICE%"=="4" goto custom_font
+goto apply_font
+
+:custom_font
+set /p FONT_NAME="請輸入字體名稱 (例如: Noto Serif TC): "
+set "FONT_DESC=%FONT_NAME%"
+
+:apply_font
+echo.
+echo [進度] 正在設定字型為「%FONT_DESC%」...
 if exist "%CONFIG_FILE%" (
     :: 使用 PowerShell 取代 Config.tjs 中的字型設定，並取消註解 (移除開頭的分號)
-    powershell -Command "(Get-Content '%CONFIG_FILE%' -Encoding UTF8) -replace '^\s*;?\s*userFace\s*=.*', 'userFace=\"Microsoft JhengHei, 微軟正黑體, sans-serif\"' | Set-Content '%CONFIG_FILE%' -Encoding UTF8"
+    powershell -Command "(Get-Content '%CONFIG_FILE%' -Encoding UTF8) -replace '^\s*;?\s*userFace\s*=.*', 'userFace=\"%FONT_NAME%\"' | Set-Content '%CONFIG_FILE%' -Encoding UTF8"
     if errorlevel 1 (
         color 0E
         echo [警告] 字型設定修改失敗，中文字可能顯示為方塊。
         echo 若發生此情況，請參閱 README.md 手動設定字型。
     ) else (
-        echo [成功] 字型已設定為「微軟正黑體」。
+        echo [成功] 字型已設定為「%FONT_DESC%」。
     )
 ) else (
     color 0E
