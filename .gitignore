@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.claude/
+_reinject_warnings.txt
+AGENTS.md
+CLAUDE.md
+CODING_STYLE.md
+scenario_backup/
