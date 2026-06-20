@@ -115,6 +115,11 @@ def main() -> None:
     jp_dir = os.path.join(out, "jp")
     patch_dir = os.path.join(out, "patched")
 
+    backup = os.path.join(os.path.dirname(game), "scenario_backup")
+    if os.path.isdir(backup):
+        print("Using backup as source: %s" % backup)
+        game = backup
+
     if not os.path.isdir(jp_dir):
         print("ERROR: worksheets not found, run extract.py first:\n  " + jp_dir)
         sys.exit(1)
