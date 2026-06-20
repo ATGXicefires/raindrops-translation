@@ -1372,7 +1372,7 @@
 [tb_chara_face_mod  time="0"  storage="chara_f000-000.png"  ]
 [tb_start_text mode=1 ]
 #
-欸，怎麼了。是不能碰的話題嗎？[p]
+欸，什麼啊。是不能提的話題嗎？[p]
 [_tb_end_text]
 
 [tb_chara_face_mod  time="0"  storage="chara_f002-005.png"  ]
