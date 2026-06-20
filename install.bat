@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableDelayedExpansion
 chcp 65001 >nul
 color 0A
 echo ========================================================
@@ -84,8 +85,42 @@ if "%FONT_CHOICE%"=="4" goto custom_font
 goto apply_font
 
 :custom_font
-set /p FONT_NAME="請輸入字體名稱 (例如: Noto Serif TC): "
-set "FONT_DESC=%FONT_NAME%"
+set /p CUSTOM_FONT="請輸入字體名稱 (例如: Noto Serif TC): "
+if "!CUSTOM_FONT!"=="" goto custom_font
+
+echo [進度] 正在檢查字體「!CUSTOM_FONT!」是否存在...
+:: 執行 PowerShell 檢查字體並嘗試猜測
+set "FONT_CHECK_RESULT="
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Add-Type -AssemblyName System.Drawing; $fonts=(New-Object System.Drawing.Text.InstalledFontCollection).Families.Name; $inputFont=$env:CUSTOM_FONT; if ($fonts -contains $inputFont) { Write-Output 'EXACT' } else { $matches=$fonts | Where-Object { $_ -match [regex]::Escape($inputFont) -or $inputFont -match [regex]::Escape($_) }; if ($matches) { Write-Output ('GUESS:' + $matches[0]) } else { Write-Output 'NONE' } }"') do set "FONT_CHECK_RESULT=%%i"
+
+if "!FONT_CHECK_RESULT!"=="EXACT" (
+    set "FONT_NAME=!CUSTOM_FONT!"
+    set "FONT_DESC=!CUSTOM_FONT!"
+    goto apply_font
+)
+
+if "!FONT_CHECK_RESULT:~0,6!"=="GUESS:" (
+    set "GUESS_FONT=!FONT_CHECK_RESULT:~6!"
+    color 0E
+    echo [警告] 找不到完全相符的字體「!CUSTOM_FONT!」。
+    set /p USE_GUESS="您是指「!GUESS_FONT!」嗎？ (Y/N): "
+    color 0A
+    if /i "!USE_GUESS!"=="Y" (
+        set "FONT_NAME=!GUESS_FONT!"
+        set "FONT_DESC=!GUESS_FONT!"
+        goto apply_font
+    ) else (
+        echo 請重新輸入字體名稱。
+        goto custom_font
+    )
+)
+
+color 0C
+echo [錯誤] 系統字體庫中找不到任何與「!CUSTOM_FONT!」相關的字體。
+echo 請確認拼字是否正確，或是字體是否有正確安裝到 Windows。
+color 0A
+echo.
+goto custom_font
 
 :apply_font
 echo.
