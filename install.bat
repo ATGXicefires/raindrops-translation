@@ -1,0 +1,84 @@
+@echo off
+chcp 65001 >nul
+color 0A
+echo ========================================================
+echo   二万分の一の雨粒達 — 繁體中文翻譯補丁 一鍵安裝程式
+echo ========================================================
+echo.
+
+set "TARGET_DIR=resources\app\data\scenario"
+set "BACKUP_DIR=resources\app\data\scenario_backup"
+set "CONFIG_FILE=resources\app\data\system\Config.tjs"
+set "PATCH_DIR=patched"
+
+:: 1. 檢查是否在遊戲目錄
+if not exist "%TARGET_DIR%" (
+    color 0C
+    echo [錯誤] 找不到遊戲目錄。
+    echo 請確保您已將此安裝程式（install.bat 與 patched 資料夾）
+    echo 放在遊戲的根目錄下（與 "二万分の一の雨粒達 - One in 20,000 raindrops.exe" 同一個資料夾）。
+    echo.
+    pause
+    exit /b 1
+)
+
+:: 2. 檢查是否有 patch 檔案
+if not exist "%PATCH_DIR%" (
+    color 0C
+    echo [錯誤] 找不到 patched 資料夾。請確認您解壓縮了完整的補丁檔案。
+    echo.
+    pause
+    exit /b 1
+)
+
+:: 3. 備份
+echo [進度] 正在檢查備份...
+if not exist "%BACKUP_DIR%" (
+    echo [進度] 建立原始劇本備份 (scenario_backup)...
+    xcopy "%TARGET_DIR%" "%BACKUP_DIR%" /E /I /H /Y >nul
+    if errorlevel 1 (
+        color 0C
+        echo [錯誤] 備份失敗！可能沒有權限，請嘗試以系統管理員身分執行。
+        pause
+        exit /b 1
+    )
+    echo [成功] 備份完成。
+) else (
+    echo [提示] 備份已存在，跳過備份步驟。
+)
+
+:: 4. 覆蓋檔案
+echo [進度] 正在安裝中文劇本...
+xcopy "%PATCH_DIR%\*.ks" "%TARGET_DIR%\" /Y >nul
+if errorlevel 1 (
+    color 0C
+    echo [錯誤] 劇本覆蓋失敗！可能沒有權限，請嘗試以系統管理員身分執行。
+    pause
+    exit /b 1
+)
+echo [成功] 中文劇本安裝完成。
+
+:: 5. 修改 Config.tjs 字型設定
+echo [進度] 正在設定字型...
+if exist "%CONFIG_FILE%" (
+    :: 使用 PowerShell 取代 Config.tjs 中的字型設定，並取消註解 (移除開頭的分號)
+    powershell -Command "(Get-Content '%CONFIG_FILE%' -Encoding UTF8) -replace '^\s*;?\s*userFace\s*=.*', 'userFace=\"Microsoft JhengHei, 微軟正黑體, sans-serif\"' | Set-Content '%CONFIG_FILE%' -Encoding UTF8"
+    if errorlevel 1 (
+        color 0E
+        echo [警告] 字型設定修改失敗，中文字可能顯示為方塊。
+        echo 若發生此情況，請參閱 README.md 手動設定字型。
+    ) else (
+        echo [成功] 字型已設定為「微軟正黑體」。
+    )
+) else (
+    color 0E
+    echo [警告] 找不到 Config.tjs，無法自動設定字型。但這不影響劇情翻譯。
+)
+
+echo.
+echo ========================================================
+echo   安裝完成！您可以直接啟動遊戲了。
+echo   如果想要還原，請將 scenario_backup 的內容覆蓋回 scenario 即可。
+echo ========================================================
+echo.
+pause

@@ -27,67 +27,26 @@
 
 ## 安裝方式
 
-### 1. 下載補丁
+我們提供了一鍵安裝腳本，讓安裝過程變得非常簡單！
 
-下載本倉庫的 `patched/` 資料夾中的所有 `.ks` 檔案。
+### 1. 下載補丁與安裝程式
+下載本補丁的壓縮檔，其中應包含 `patched` 資料夾與 `install.bat`。
 
-### 2. 備份遊戲原檔
+### 2. 開啟遊戲目錄
+在 Steam 中找到遊戲，右鍵點擊選擇 **「管理」 -> 「瀏覽本機檔案」**。
+（預設路徑通常是 `C:\Program Files (x86)\Steam\steamapps\common\二万分の一の雨粒達 - One in 20,000 raindrops`）
 
-備份遊戲目錄下的劇本資料夾：
-
-```
-<Steam遊戲目錄>\二万分の一の雨粒達 - One in 20,000 raindrops\resources\app\data\scenario
-```
-
-建議將整個 `scenario` 資料夾複製一份（例如改名為 `scenario_backup`）。
-
-### 3. 覆蓋劇本檔
-
-將 `patched/` 中的 `.ks` 檔案複製到上述 `scenario` 資料夾中，覆蓋同名檔案。
+### 3. 解壓縮並執行安裝
+1. 將下載的 `patched` 資料夾與 `install.bat` 複製並貼上到**遊戲根目錄**（與 `二万分の一の雨粒達 - One in 20,000 raindrops.exe` 在同一個資料夾）。
+2. 雙擊執行 `install.bat`。
+3. 腳本會自動完成備份、安裝與字型設定。看到「安裝完成！」提示後，即可關閉視窗。
 
 ### 4. 啟動遊戲
-
-正常啟動遊戲即可看到中文。
-
-### 5. 修復字型（若中文顯示為方框）
-
-遊戲內建的日文字型不包含所有繁體中文字，可能導致部分文字顯示為方框。解決方式如下：
-
-1. 複製一個繁體中文字型到遊戲資料夾，例如：
-
-   ```
-   C:\Windows\Fonts\NotoSerifTC-VF.ttf
-   → resources\app\data\others\NotoSerifTC-VF.ttf
-   ```
-
-2. 在 `resources\app\tyrano\css\font.css` **最前面**新增：
-
-   ```css
-   @font-face {
-     font-family: 'RaindropsTC';
-     src: url('../../data/others/NotoSerifTC-VF.ttf') format('truetype');
-     font-weight: 400;
-     font-style: normal;
-   }
-   ```
-
-3. 在 `resources\app\data\system\Config.tjs` 中將：
-
-   ```
-   ;userFace=dejima-mincho-r227
-   ```
-
-   改為：
-
-   ```
-   ;userFace=RaindropsTC
-   ```
-
-4. 重新啟動遊戲。
+正常啟動遊戲即可看到繁體中文與正確的字型。
 
 ### 還原方法
-
-將備份的 `scenario_backup` 內容覆蓋回 `scenario` 資料夾，或透過 Steam 驗證遊戲檔案完整性即可還原。
+安裝腳本會自動在 `resources\app\data\` 下建立 `scenario_backup`。
+若要還原日文原版，只需將 `scenario_backup` 內的檔案覆蓋回 `scenario` 資料夾，或透過 Steam「驗證遊戲檔案完整性」即可還原。
 
 ## 倉庫結構
 
