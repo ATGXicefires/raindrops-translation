@@ -31,7 +31,7 @@
 
 ### 1. 下載並解壓縮
 下載本補丁的壓縮檔，並將其解壓縮到您電腦上的任何地方（桌面、下載資料夾皆可）。
-資料夾內應包含 `patched` 資料夾與 `install.bat`。
+資料夾內應包含 `patched` 資料夾、`install.bat` 與 `install.ps1`。
 
 ### 2. 執行安裝
 雙擊執行 `install.bat`。
@@ -53,6 +53,8 @@
 jp/              翻譯工作表（JSON），每個 .ks 劇本一個
 patched/         產生的補丁檔（已翻譯的 .ks 劇本）← 安裝時用這個
 _glossary.md     角色名與專有名詞對照表
+install.bat      一鍵安裝啟動器
+install.ps1      實際安裝流程腳本
 tools/
   extract.py     從遊戲 .ks 抽取日文到 JSON 工作表
   reinject.py    將 JSON 中的翻譯回填成 .ks 補丁
