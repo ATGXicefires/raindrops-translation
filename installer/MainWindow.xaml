@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="二万分の一の雨粒達 — 繁體中文翻譯補丁安裝"
-        Width="620" Height="680"
+        Width="620" Height="760"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="#1B2838"
@@ -128,6 +128,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -174,13 +175,26 @@
                 </StackPanel>
             </GroupBox>
 
+            <!-- Steam Overlay 修正（可選） -->
+            <GroupBox Grid.Row="2" Header="進階選項">
+                <StackPanel>
+                    <CheckBox x:Name="chkSteamOverlay" IsChecked="False"
+                              Foreground="#E0E8F0" FontWeight="Normal"
+                              VerticalContentAlignment="Center"
+                              Content="修正 Steam Overlay／截圖（修改 main.js，預設不勾）"/>
+                    <TextBlock FontWeight="Normal" FontSize="10.5"
+                               Foreground="#6B7B8D" Margin="0,4,0,0" TextWrapping="Wrap"
+                               Text="Electron 遊戲預設無法使用 Steam Overlay（Shift+Tab）與截圖（F12）。勾選後會自動修改 main.js 修正此問題；Steam 更新遊戲後可能需重新執行。"/>
+                </StackPanel>
+            </GroupBox>
+
             <!-- Install Button -->
-            <Button x:Name="btnInstall" Grid.Row="2" Content="安 裝 翻 譯 補 丁"
+            <Button x:Name="btnInstall" Grid.Row="3" Content="安 裝 翻 譯 補 丁"
                     Style="{StaticResource InstallButton}" Margin="0,4,0,12"
                     Click="BtnInstall_Click"/>
 
             <!-- Log -->
-            <GroupBox Grid.Row="3" Header="安裝紀錄">
+            <GroupBox Grid.Row="4" Header="安裝紀錄">
                 <TextBox x:Name="txtLog" IsReadOnly="True" TextWrapping="Wrap"
                          FontFamily="Consolas, Microsoft JhengHei" FontSize="11.5"
                          Background="#0F1923" Foreground="#B8C7D6"

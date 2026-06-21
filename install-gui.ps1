@@ -46,7 +46,7 @@ $xamlString = @"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="二万分の一の雨粒達 — 繁體中文翻譯補丁安裝"
-    Width="620" Height="680"
+    Width="620" Height="760"
     WindowStartupLocation="CenterScreen"
     ResizeMode="NoResize"
     Background="#1B2838"
@@ -171,6 +171,7 @@ $xamlString = @"
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -213,12 +214,25 @@ $xamlString = @"
                 </StackPanel>
             </GroupBox>
 
+            <!-- Steam Overlay 修正（可選） -->
+            <GroupBox Grid.Row="2" Header="進階選項">
+                <StackPanel>
+                    <CheckBox x:Name="chkSteamOverlay" IsChecked="False"
+                              Foreground="#E0E8F0" FontWeight="Normal"
+                              VerticalContentAlignment="Center"
+                              Content="修正 Steam Overlay／截圖（修改 main.js，預設不勾）"/>
+                    <TextBlock FontWeight="Normal" FontSize="10.5"
+                               Foreground="#6B7B8D" Margin="0,4,0,0" TextWrapping="Wrap"
+                               Text="Electron 遊戲預設無法使用 Steam Overlay（Shift+Tab）與截圖（F12）。勾選後會自動修改 main.js 修正此問題；Steam 更新遊戲後可能需重新執行。"/>
+                </StackPanel>
+            </GroupBox>
+
             <!-- Install Button -->
-            <Button x:Name="btnInstall" Grid.Row="2" Content="安 裝 翻 譯 補 丁"
+            <Button x:Name="btnInstall" Grid.Row="3" Content="安 裝 翻 譯 補 丁"
                     Style="{StaticResource InstallButton}" Margin="0,4,0,12"/>
 
             <!-- Log -->
-            <GroupBox Grid.Row="3" Header="安裝紀錄">
+            <GroupBox Grid.Row="4" Header="安裝紀錄">
                 <TextBox x:Name="txtLog" IsReadOnly="True" TextWrapping="Wrap"
                          FontFamily="Consolas, Microsoft JhengHei" FontSize="11.5"
                          Background="#0F1923" Foreground="#B8C7D6"
@@ -244,6 +258,7 @@ $rbFont4       = $window.FindName("rbFont4")
 $pnlCustomFont = $window.FindName("pnlCustomFont")
 $txtCustomFont = $window.FindName("txtCustomFont")
 $lstFonts      = $window.FindName("lstFonts")
+$chkSteamOverlay = $window.FindName("chkSteamOverlay")
 $btnInstall    = $window.FindName("btnInstall")
 $txtLog        = $window.FindName("txtLog")
 
@@ -366,10 +381,92 @@ function Get-FontSetting {
     return @{ Name = "Microsoft JhengHei, 微軟正黑體, sans-serif"; Description = "微軟正黑體" }
 }
 
-function Install-Patch([string]$gameRoot, [hashtable]$font) {
+function Test-SaveSetIdentical($saves, [string]$snapshotDir) {
+    $snapSaves = @(Get-ChildItem -LiteralPath $snapshotDir -Filter "*.sav" -File -ErrorAction SilentlyContinue)
+    if ($snapSaves.Count -ne $saves.Count) { return $false }
+    foreach ($sav in $saves) {
+        $snap = Join-Path $snapshotDir $sav.Name
+        if (-not (Test-Path $snap)) { return $false }
+        $h1 = (Get-FileHash -LiteralPath $sav.FullName -Algorithm SHA256).Hash
+        $h2 = (Get-FileHash -LiteralPath $snap -Algorithm SHA256).Hash
+        if ($h1 -ne $h2) { return $false }
+    }
+    return $true
+}
+
+function Backup-Saves([string]$gameRoot) {
+    $saves = @(Get-ChildItem -LiteralPath $gameRoot -Filter "*.sav" -File -ErrorAction SilentlyContinue)
+    if ($saves.Count -eq 0) { return }
+
+    $root = Join-Path $gameRoot "saves_backup"
+    if (-not (Test-Path $root)) { New-Item -ItemType Directory -Force -Path $root | Out-Null }
+
+    # 與最近一次的快照比對，內容相同就不重複備份
+    $newest = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+    if ($newest -and (Test-SaveSetIdentical $saves $newest.FullName)) {
+        Write-Log "遊戲存檔與最近一次備份相同，跳過。"
+        return
+    }
+
+    # 每次都把「目前的」存檔另存成有時間戳的新快照，不覆蓋舊備份
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $dest = Join-Path $root $stamp
+    $i = 1
+    while (Test-Path $dest) { $dest = Join-Path $root "$stamp-$i"; $i++ }
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Write-Log "發現遊戲存檔，正在備份目前進度至 saves_backup\$(Split-Path $dest -Leaf) ..."
+
+    foreach ($sav in $saves) {
+        Copy-Item -LiteralPath $sav.FullName -Destination (Join-Path $dest $sav.Name) -Force
+        Write-Log "已備份存檔：$($sav.Name)" "success"
+    }
+}
+
+function Apply-SteamOverlay([string]$gameRoot) {
+    $mainJs = Join-Path $gameRoot "resources\app\main.js"
+    if (-not (Test-Path $mainJs)) {
+        Write-Log "找不到 main.js，略過 Steam Overlay 修正。" "warn"
+        return
+    }
+
+    $content = [System.IO.File]::ReadAllText($mainJs, [System.Text.Encoding]::UTF8)
+    if ($content -match 'in-process-gpu') {
+        Write-Log "Steam Overlay 修正已套用過，略過。"
+        return
+    }
+
+    $anchor = [regex]'(?m)^([ \t]*)const\s+app\s*=\s*electron\.app\s*;'
+    $m = $anchor.Match($content)
+    if (-not $m.Success) {
+        Write-Log "main.js 格式與預期不符，未自動修改，請參考 README 手動處理。" "warn"
+        return
+    }
+
+    # 改檔前先補一份備份（使用者可能在備份資料夾已存在時才勾選此項）
+    $backupMainJs = Join-Path $gameRoot "resources\app\data\scenario_backup\main.js.bak"
+    if (-not (Test-Path $backupMainJs)) {
+        $backupParent = Split-Path $backupMainJs -Parent
+        if (-not (Test-Path $backupParent)) { New-Item -ItemType Directory -Force -Path $backupParent | Out-Null }
+        Copy-Item -LiteralPath $mainJs -Destination $backupMainJs -Force
+    }
+
+    Write-Log "正在套用 Steam Overlay／截圖修正（main.js）..."
+    if ($content.Contains("`r`n")) { $newline = "`r`n" } else { $newline = "`n" }
+    $indent = $m.Groups[1].Value
+    $lineEnd = $content.IndexOf("`n", $m.Index + $m.Length)
+    if ($lineEnd -lt 0) { $insertAt = $content.Length } else { $insertAt = $lineEnd + 1 }
+    $insertedLine = $indent + "app.commandLine.appendSwitch('in-process-gpu');" + $newline
+    $content = $content.Substring(0, $insertAt) + $insertedLine + $content.Substring($insertAt)
+    [System.IO.File]::WriteAllText($mainJs, $content, [System.Text.Encoding]::UTF8)
+    Write-Log "Steam Overlay 修正已套用；若日後 Steam 更新遊戲被還原，需重新執行。" "success"
+}
+
+function Install-Patch([string]$gameRoot, [hashtable]$font, [bool]$patchOverlay) {
     $targetDir  = Join-Path $gameRoot "resources\app\data\scenario"
     $backupDir  = Join-Path $gameRoot "resources\app\data\scenario_backup"
     $configFile = Join-Path $gameRoot "resources\app\data\system\Config.tjs"
+
+    Backup-Saves $gameRoot
 
     Write-Log "正在檢查備份..."
     if (-not (Test-Path $backupDir)) {
@@ -383,6 +480,10 @@ function Install-Patch([string]$gameRoot, [hashtable]$font) {
         }
         if (Test-Path $configFile) {
             Copy-Item -LiteralPath $configFile -Destination (Join-Path $backupDir "Config.tjs.bak") -Force
+        }
+        $mainJsSrc = Join-Path $gameRoot "resources\app\main.js"
+        if (Test-Path $mainJsSrc) {
+            Copy-Item -LiteralPath $mainJsSrc -Destination (Join-Path $backupDir "main.js.bak") -Force
         }
         Write-Log "備份完成。" "success"
     } else {
@@ -422,6 +523,8 @@ function Install-Patch([string]$gameRoot, [hashtable]$font) {
         Set-Content -LiteralPath $configFile -Value $updated -Encoding UTF8
         Write-Log "字型已設定為「$($font.Description)」。" "success"
     }
+
+    if ($patchOverlay) { Apply-SteamOverlay $gameRoot }
 
     Write-Log ""
     Write-Log "安裝完成！您可以直接啟動遊戲了。" "success"
@@ -536,9 +639,10 @@ $btnInstall.Add_Click({
     $rbFont4.IsEnabled = $false
     $txtCustomFont.IsEnabled = $false
     $lstFonts.IsEnabled = $false
+    $chkSteamOverlay.IsEnabled = $false
 
     try {
-        Install-Patch -gameRoot $gamePath -font $font
+        Install-Patch -gameRoot $gamePath -font $font -patchOverlay ([bool]$chkSteamOverlay.IsChecked)
         [System.Windows.MessageBox]::Show(
             "安裝完成！您可以直接啟動遊戲了。`n`n如需還原，請將 scenario_backup 內的檔案覆蓋回 scenario，`n或使用 Steam 的「驗證遊戲檔案完整性」功能。",
             "安裝成功", "OK", "Information") | Out-Null
@@ -558,6 +662,7 @@ $btnInstall.Add_Click({
         $rbFont4.IsEnabled = $true
         $txtCustomFont.IsEnabled = $true
         $lstFonts.IsEnabled = $true
+        $chkSteamOverlay.IsEnabled = $true
     }
 })
 

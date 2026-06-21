@@ -171,6 +171,86 @@ try {
         Write-Host "[成功] 字型已設定為「$($font.Description)」。" -ForegroundColor Green
     }
 
+    function Test-SaveSetIdentical($saves, [string]$snapshotDir) {
+        $snapSaves = @(Get-ChildItem -LiteralPath $snapshotDir -Filter "*.sav" -File -ErrorAction SilentlyContinue)
+        if ($snapSaves.Count -ne $saves.Count) { return $false }
+        foreach ($sav in $saves) {
+            $snap = Join-Path $snapshotDir $sav.Name
+            if (-not (Test-Path $snap)) { return $false }
+            $h1 = (Get-FileHash -LiteralPath $sav.FullName -Algorithm SHA256).Hash
+            $h2 = (Get-FileHash -LiteralPath $snap -Algorithm SHA256).Hash
+            if ($h1 -ne $h2) { return $false }
+        }
+        return $true
+    }
+
+    function Backup-Saves([string]$gameRoot) {
+        $saves = @(Get-ChildItem -LiteralPath $gameRoot -Filter "*.sav" -File -ErrorAction SilentlyContinue)
+        if ($saves.Count -eq 0) { return }
+
+        $root = Join-Path $gameRoot "saves_backup"
+        if (-not (Test-Path $root)) { New-Item -ItemType Directory -Force -Path $root | Out-Null }
+
+        # 與最近一次的快照比對，內容相同就不重複備份
+        $newest = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+        if ($newest -and (Test-SaveSetIdentical $saves $newest.FullName)) {
+            Write-Host "[提示] 遊戲存檔與最近一次備份相同，跳過。" -ForegroundColor Green
+            return
+        }
+
+        # 每次都把「目前的」存檔另存成有時間戳的新快照，不覆蓋舊備份
+        $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $dest = Join-Path $root $stamp
+        $i = 1
+        while (Test-Path $dest) { $dest = Join-Path $root "$stamp-$i"; $i++ }
+        New-Item -ItemType Directory -Force -Path $dest | Out-Null
+        Write-Host "[進度] 發現遊戲存檔，正在備份目前進度至 saves_backup\$(Split-Path $dest -Leaf) ..." -ForegroundColor Green
+
+        foreach ($sav in $saves) {
+            Copy-Item -LiteralPath $sav.FullName -Destination (Join-Path $dest $sav.Name) -Force
+            Write-Host "[成功] 已備份存檔：$($sav.Name)" -ForegroundColor Green
+        }
+    }
+
+    function Apply-SteamOverlay([string]$gameRoot) {
+        $mainJs = Join-Path $gameRoot "resources\app\main.js"
+        if (-not (Test-Path $mainJs)) {
+            Write-Host "[警告] 找不到 main.js，略過 Steam Overlay 修正。" -ForegroundColor Yellow
+            return
+        }
+
+        $content = [System.IO.File]::ReadAllText($mainJs, [System.Text.Encoding]::UTF8)
+        if ($content -match 'in-process-gpu') {
+            Write-Host "[提示] Steam Overlay 修正已套用過，略過。" -ForegroundColor Green
+            return
+        }
+
+        $anchor = [regex]'(?m)^([ \t]*)const\s+app\s*=\s*electron\.app\s*;'
+        $m = $anchor.Match($content)
+        if (-not $m.Success) {
+            Write-Host "[警告] main.js 格式與預期不符，未自動修改，請參考 README 手動處理。" -ForegroundColor Yellow
+            return
+        }
+
+        # 改檔前先備份 main.js（不存在才備份）
+        $backupMainJs = Join-Path $gameRoot "resources\app\data\scenario_backup\main.js.bak"
+        if (-not (Test-Path $backupMainJs)) {
+            $backupParent = Split-Path $backupMainJs -Parent
+            if (-not (Test-Path $backupParent)) { New-Item -ItemType Directory -Force -Path $backupParent | Out-Null }
+            Copy-Item -LiteralPath $mainJs -Destination $backupMainJs -Force
+        }
+
+        Write-Host "[進度] 正在套用 Steam Overlay／截圖修正（main.js）..." -ForegroundColor Green
+        if ($content.Contains("`r`n")) { $newline = "`r`n" } else { $newline = "`n" }
+        $indent = $m.Groups[1].Value
+        $lineEnd = $content.IndexOf("`n", $m.Index + $m.Length)
+        if ($lineEnd -lt 0) { $insertAt = $content.Length } else { $insertAt = $lineEnd + 1 }
+        $insertedLine = $indent + "app.commandLine.appendSwitch('in-process-gpu');" + $newline
+        $content = $content.Substring(0, $insertAt) + $insertedLine + $content.Substring($insertAt)
+        [System.IO.File]::WriteAllText($mainJs, $content, [System.Text.Encoding]::UTF8)
+        Write-Host "[成功] Steam Overlay 修正已套用；若日後 Steam 更新遊戲被還原，需重新執行。" -ForegroundColor Green
+    }
+
     $gameRoot = Find-GameRoot
     $targetDir = Join-Path $gameRoot "resources\app\data\scenario"
     $backupDir = Join-Path $gameRoot "resources\app\data\scenario_backup"
@@ -187,6 +267,8 @@ try {
         Write-Host "[錯誤] patched 資料夾內找不到任何 .ks 劇本檔案。" -ForegroundColor Red
         Pause-And-Exit 1
     }
+
+    Backup-Saves -gameRoot $gameRoot
 
     Write-Host "[進度] 正在檢查備份..." -ForegroundColor Green
     if (-not (Test-Path $backupDir)) {
@@ -208,6 +290,14 @@ try {
     Install-NotoSerifTC -gameRoot $gameRoot
     $font = Select-Font
     Apply-Font -configFile $configFile -font $font
+
+    Write-Host ""
+    $overlayChoice = Read-Host "是否要修正 Steam Overlay／截圖？會修改 main.js（預設否）[y/N]"
+    if ($overlayChoice -match "^[Yy]") {
+        Apply-SteamOverlay -gameRoot $gameRoot
+    } else {
+        Write-Host "[提示] 已略過 Steam Overlay 修正。" -ForegroundColor Green
+    }
 
     Write-Host ""
     Write-Host "========================================================" -ForegroundColor Cyan

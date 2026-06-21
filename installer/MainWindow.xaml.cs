@@ -188,7 +188,7 @@ namespace RaindropsInstaller
             SetControlsEnabled(false);
             try
             {
-                _patchInstaller.Install(gamePath, _patchDir, font);
+                _patchInstaller.Install(gamePath, _patchDir, font, chkSteamOverlay.IsChecked == true);
                 MessageBox.Show(
                     "安裝完成！您可以直接啟動遊戲了。\n\n如需還原，請將 scenario_backup 內的檔案覆蓋回 scenario，\n或使用 Steam 的「驗證遊戲檔案完整性」功能。",
                     "安裝成功", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -233,6 +233,7 @@ namespace RaindropsInstaller
             rbFont4.IsEnabled = enabled;
             txtCustomFont.IsEnabled = enabled;
             lstFonts.IsEnabled = enabled;
+            chkSteamOverlay.IsEnabled = enabled;
         }
 
         private void WriteLog(string message, string level)

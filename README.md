@@ -39,6 +39,7 @@
 安裝程式會：
 - **自動偵測** Steam 遊戲安裝位置（也可手動瀏覽選擇）
 - 讓您選擇遊戲顯示字型（推薦「思源宋體」）
+- **若偵測到遊戲存檔（`*.sav`），會在動工前把目前進度備份到 `saves_backup`（每次依時間戳另存新快照）**
 - 自動備份原始檔案、安裝翻譯補丁、設定字型
 
 看到「安裝完成！」提示後，即可直接啟動遊戲享受繁體中文。
@@ -48,6 +49,8 @@
 ### 還原方法
 安裝程式會自動在遊戲目錄建立 `scenario_backup` 備份。
 若要還原日文原版，將 `scenario_backup` 內的檔案覆蓋回 `scenario` 資料夾，或透過 Steam「驗證遊戲檔案完整性」即可。
+
+若偵測到遊戲存檔，安裝程式還會在動工前把目前的 `*.sav` 備份到遊戲目錄下的 `saves_backup`。每次執行都會依時間戳（`saves_backup\YYYYMMDD-HHMMSS\`）另存一份當下進度的快照，**舊快照永遠不會被覆蓋**；若這次的存檔與最近一次快照完全相同則略過，不重複備份。如此一來，先裝初始補丁、玩到一半、再更新補丁時，更新前的進度也會被保留。萬一存檔出問題，挑一個快照資料夾，把裡面的 `.sav` 檔覆蓋回遊戲根目錄即可還原。
 
 ## 倉庫結構
 
@@ -73,13 +76,15 @@ tools/
 
 本遊戲使用 Electron 引擎，Steam Overlay（Shift+Tab）和 Steam 截圖（F12）預設無法正常運作。這是因為 Electron 的 Chromium 渲染管線與 Steam Overlay 的 DirectX/OpenGL hook 不相容。
 
-**修正方法：** 編輯遊戲目錄下的 `resources\app\main.js`，在檔案開頭的 `const app = electron.app;` 之後加上一行：
+**修正方法（推薦）：** 安裝程式提供「修正 Steam Overlay／截圖」可選項（**預設關閉**）。在 `RaindropsInstaller.exe` 或 `install-gui.ps1` 中勾選該選項、或在 `install.ps1` 的提問回答 `y`，即會自動完成修正。修正前會先備份 `main.js`（存於 `scenario_backup\main.js.bak`）。
+
+**手動修正（備援）：** 編輯遊戲目錄下的 `resources\app\main.js`，在檔案開頭的 `const app = electron.app;` 之後加上一行：
 
 ```js
 app.commandLine.appendSwitch('in-process-gpu');
 ```
 
-儲存後重新啟動遊戲即可。注意 Steam 更新遊戲時可能會覆蓋此修改，需要重新加上。
+儲存後重新啟動遊戲即可。注意 Steam 更新遊戲時可能會覆蓋此修改（不論用安裝程式或手動），需要重新加上。
 
 ## 授權
 
