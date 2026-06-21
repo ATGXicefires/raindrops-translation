@@ -25,6 +25,7 @@ namespace RaindropsInstaller.Services
             CopyPatchFiles(patchDir, targetDir);
             InjectFontCss(gameRoot);
             UpdateConfigTjs(configFile, font);
+            PatchThemeCss(gameRoot, font);
             ClearElectronCache();
 
             Log("", "info");
@@ -50,6 +51,10 @@ namespace RaindropsInstaller.Services
 
             if (File.Exists(configFile))
                 File.Copy(configFile, Path.Combine(backupDir, "Config.tjs.bak"), true);
+
+            var themeCssSrc = Path.Combine(gameRoot, @"resources\app\data\others\plugin\theme_kopanda_24_FHD\tyrano.css");
+            if (File.Exists(themeCssSrc))
+                File.Copy(themeCssSrc, Path.Combine(backupDir, "tyrano.css.bak"), true);
 
             Log("備份完成。", "success");
         }
@@ -114,6 +119,35 @@ namespace RaindropsInstaller.Services
 
             File.WriteAllLines(configFile, lines, Encoding.UTF8);
             Log($"字型已設定為「{font.Description}」。", "success");
+        }
+
+        private void PatchThemeCss(string gameRoot, FontSetting font)
+        {
+            var themeCss = Path.Combine(gameRoot,
+                @"resources\app\data\others\plugin\theme_kopanda_24_FHD\tyrano.css");
+
+            if (!File.Exists(themeCss))
+            {
+                Log("找不到主題 CSS，跳過字型覆寫。", "info");
+                return;
+            }
+
+            Log("正在修正主題 CSS 字型設定...", "info");
+            var content = File.ReadAllText(themeCss, Encoding.UTF8);
+
+            var fontFamily = font.Name;
+            content = Regex.Replace(content,
+                @"(\.vchat-name\s*\{[^}]*?)font-family\s*:[^;]+;",
+                $"$1font-family: {fontFamily}, sans-serif;");
+            content = Regex.Replace(content,
+                @"(\.vchat-text\s*\{[^}]*?)font-family\s*:[^;]+;",
+                $"$1font-family: {fontFamily}, sans-serif;");
+            content = Regex.Replace(content,
+                @"(\.vertical_text\s*\{[^}]*?)font-family\s*:[^;]+;",
+                $"$1font-family: '@{fontFamily}';");
+
+            File.WriteAllText(themeCss, content, Encoding.UTF8);
+            Log("主題 CSS 字型已更新。", "success");
         }
 
         private void ClearElectronCache()
