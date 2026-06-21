@@ -164,11 +164,13 @@ namespace RaindropsInstaller.Services
             Log("正在修正存檔中的字型設定...", "info");
             var content = File.ReadAllText(savFile, Encoding.UTF8);
 
-            var encodedFont = Uri.EscapeDataString(font.Name).Replace("%20", "%20");
+            var encodedFont = Uri.EscapeDataString(font.Name)
+                .Replace("+", "%20");
             var replacement = "font-family%3A%20" + encodedFont;
 
+            // font-family value ends at %3B (;) in URL-encoded save data
             content = Regex.Replace(content,
-                @"font-family%3A%20[^%;]+(%2C%20[^%;]+)*",
+                @"font-family%3A%20(?:(?!%3B).)+",
                 replacement);
 
             File.WriteAllText(savFile, content, Encoding.UTF8);
