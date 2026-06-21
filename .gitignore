@@ -8,3 +8,5 @@ CODING_STYLE.md
 scenario_backup/
 raindrops-translation-patch-release.zip
 raindrops-translation-patch*.zip
+installer/bin/
+installer/obj/
