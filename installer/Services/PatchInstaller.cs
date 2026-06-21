@@ -25,6 +25,7 @@ namespace RaindropsInstaller.Services
             CopyPatchFiles(patchDir, targetDir);
             InjectFontCss(gameRoot);
             UpdateConfigTjs(configFile, font);
+            ClearElectronCache();
 
             Log("", "info");
             Log("安裝完成！您可以直接啟動遊戲了。", "success");
@@ -113,6 +114,31 @@ namespace RaindropsInstaller.Services
 
             File.WriteAllLines(configFile, lines, Encoding.UTF8);
             Log($"字型已設定為「{font.Description}」。", "success");
+        }
+
+        private void ClearElectronCache()
+        {
+            var cacheDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "tyranogame");
+
+            if (!Directory.Exists(cacheDir))
+            {
+                Log("未偵測到 Electron 快取，跳過。", "info");
+                return;
+            }
+
+            Log("正在清除 Electron 快取（避免首次啟動失敗）...", "info");
+            try
+            {
+                Directory.Delete(cacheDir, true);
+                Log("Electron 快取已清除。", "success");
+            }
+            catch (Exception ex)
+            {
+                Log($"快取清除失敗（遊戲可能正在執行）：{ex.Message}", "warn");
+                Log("如首次啟動異常，請關閉遊戲後重新啟動即可。", "warn");
+            }
         }
 
         private void CopyDirectory(string source, string destination)
