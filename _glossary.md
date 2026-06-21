@@ -30,6 +30,7 @@
 | 店員 | 店員 | scene1.ks |
 | 斉藤 | 齊藤 | scene1.ks |
 | 朝霧 葵 | 朝霧 葵 | _preview.ks |
+| 霧ちゃん | 小霧 | scene4.ks（暱稱） |
 | 母さん | 媽 | scene1.ks |
 | 瀬戸 静流 | 瀨戶 靜流 | _preview.ks |
 | 瑠璃川 結衣 | 瑠璃川 結衣 | _preview.ks |
