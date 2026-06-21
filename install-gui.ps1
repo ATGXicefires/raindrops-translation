@@ -461,6 +461,37 @@ function Apply-SteamOverlay([string]$gameRoot) {
     Write-Log "Steam Overlay 修正已套用；若日後 Steam 更新遊戲被還原，需重新執行。" "success"
 }
 
+function Clear-ElectronCache {
+    $cacheRoot = Join-Path $env:APPDATA "tyranogame"
+    if (-not (Test-Path $cacheRoot)) {
+        Write-Log "未偵測到 Electron 快取目錄，跳過。"
+        return
+    }
+
+    # 只清會在下次啟動自動重建的快取子資料夾；絕不刪 Local Storage
+    # （存有 TyranoScript 的 save_key，刪了存檔 hash 會失效）。
+    $cacheSubDirs = @("Cache", "Code Cache", "GPUCache", "DawnCache",
+        "DawnGraphiteCache", "DawnWebGPUCache", "ShaderCache", "GrShaderCache")
+
+    Write-Log "正在清除 Electron 快取（避免首次啟動失敗，不影響存檔）..."
+    $cleared = 0
+    foreach ($name in $cacheSubDirs) {
+        $dir = Join-Path $cacheRoot $name
+        if (-not (Test-Path $dir)) { continue }
+        try {
+            Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+            $cleared++
+        } catch {
+            Write-Log "無法清除快取「$name」（遊戲可能正在執行）：$($_.Exception.Message)" "warn"
+        }
+    }
+    if ($cleared -gt 0) {
+        Write-Log "Electron 快取已清除（$cleared 項），存檔保持不動。" "success"
+    } else {
+        Write-Log "沒有需要清除的快取。"
+    }
+}
+
 function Install-Patch([string]$gameRoot, [hashtable]$font, [bool]$patchOverlay) {
     $targetDir  = Join-Path $gameRoot "resources\app\data\scenario"
     $backupDir  = Join-Path $gameRoot "resources\app\data\scenario_backup"
@@ -525,6 +556,8 @@ function Install-Patch([string]$gameRoot, [hashtable]$font, [bool]$patchOverlay)
     }
 
     if ($patchOverlay) { Apply-SteamOverlay $gameRoot }
+
+    Clear-ElectronCache
 
     Write-Log ""
     Write-Log "安裝完成！您可以直接啟動遊戲了。" "success"

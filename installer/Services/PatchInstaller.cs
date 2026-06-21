@@ -31,6 +31,7 @@ namespace RaindropsInstaller.Services
             PatchThemeCss(gameRoot, font);
             if (patchSteamOverlay)
                 PatchSteamOverlayMainJs(gameRoot);
+            ClearElectronCache();
 
             Log("", "info");
             Log("安裝完成！您可以直接啟動遊戲了。", "success");
@@ -256,6 +257,51 @@ namespace RaindropsInstaller.Services
 
             File.WriteAllText(mainJs, content, Encoding.UTF8);
             Log("Steam Overlay 修正已套用；若日後 Steam 更新遊戲被還原，需重新執行。", "success");
+        }
+
+        private void ClearElectronCache()
+        {
+            var cacheRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "tyranogame");
+
+            if (!Directory.Exists(cacheRoot))
+            {
+                Log("未偵測到 Electron 快取目錄，跳過。", "info");
+                return;
+            }
+
+            // 只清會在下次啟動自動重建的快取子資料夾。
+            // 絕不刪 Local Storage —— 那裡存有 TyranoScript 的 save_key，
+            // 一旦刪掉，存檔的 hash 驗證就會失效、遊戲卡在 Loading。
+            var cacheSubDirs = new[]
+            {
+                "Cache", "Code Cache", "GPUCache",
+                "DawnCache", "DawnGraphiteCache", "DawnWebGPUCache",
+                "ShaderCache", "GrShaderCache",
+            };
+
+            Log("正在清除 Electron 快取（避免首次啟動失敗，不影響存檔）...", "info");
+            int cleared = 0;
+            foreach (var name in cacheSubDirs)
+            {
+                var dir = Path.Combine(cacheRoot, name);
+                if (!Directory.Exists(dir)) continue;
+                try
+                {
+                    Directory.Delete(dir, true);
+                    cleared++;
+                }
+                catch (Exception ex)
+                {
+                    Log($"無法清除快取「{name}」（遊戲可能正在執行）：{ex.Message}", "warn");
+                }
+            }
+
+            if (cleared > 0)
+                Log($"Electron 快取已清除（{cleared} 項），存檔保持不動。", "success");
+            else
+                Log("沒有需要清除的快取。", "info");
         }
 
         private void CopyDirectory(string source, string destination)

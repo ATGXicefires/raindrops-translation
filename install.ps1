@@ -251,6 +251,37 @@ try {
         Write-Host "[成功] Steam Overlay 修正已套用；若日後 Steam 更新遊戲被還原，需重新執行。" -ForegroundColor Green
     }
 
+    function Clear-ElectronCache {
+        $cacheRoot = Join-Path $env:APPDATA "tyranogame"
+        if (-not (Test-Path $cacheRoot)) {
+            Write-Host "[提示] 未偵測到 Electron 快取目錄，跳過。" -ForegroundColor Green
+            return
+        }
+
+        # 只清會在下次啟動自動重建的快取子資料夾；絕不刪 Local Storage
+        # （存有 TyranoScript 的 save_key，刪了存檔 hash 會失效）。
+        $cacheSubDirs = @("Cache", "Code Cache", "GPUCache", "DawnCache",
+            "DawnGraphiteCache", "DawnWebGPUCache", "ShaderCache", "GrShaderCache")
+
+        Write-Host "[進度] 正在清除 Electron 快取（避免首次啟動失敗，不影響存檔）..." -ForegroundColor Green
+        $cleared = 0
+        foreach ($name in $cacheSubDirs) {
+            $dir = Join-Path $cacheRoot $name
+            if (-not (Test-Path $dir)) { continue }
+            try {
+                Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+                $cleared++
+            } catch {
+                Write-Host "[警告] 無法清除快取「$name」（遊戲可能正在執行）：$($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        }
+        if ($cleared -gt 0) {
+            Write-Host "[成功] Electron 快取已清除（$cleared 項），存檔保持不動。" -ForegroundColor Green
+        } else {
+            Write-Host "[提示] 沒有需要清除的快取。" -ForegroundColor Green
+        }
+    }
+
     $gameRoot = Find-GameRoot
     $targetDir = Join-Path $gameRoot "resources\app\data\scenario"
     $backupDir = Join-Path $gameRoot "resources\app\data\scenario_backup"
@@ -298,6 +329,9 @@ try {
     } else {
         Write-Host "[提示] 已略過 Steam Overlay 修正。" -ForegroundColor Green
     }
+
+    Write-Host ""
+    Clear-ElectronCache
 
     Write-Host ""
     Write-Host "========================================================" -ForegroundColor Cyan
