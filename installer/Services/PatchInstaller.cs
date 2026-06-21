@@ -26,6 +26,7 @@ namespace RaindropsInstaller.Services
             InjectFontCss(gameRoot);
             UpdateConfigTjs(configFile, font);
             PatchThemeCss(gameRoot, font);
+            PatchSaveFileFont(gameRoot, font);
             ClearElectronCache();
 
             Log("", "info");
@@ -52,9 +53,13 @@ namespace RaindropsInstaller.Services
             if (File.Exists(configFile))
                 File.Copy(configFile, Path.Combine(backupDir, "Config.tjs.bak"), true);
 
+            var tyranoCssSrc = Path.Combine(gameRoot, @"resources\app\tyrano\tyrano.css");
+            if (File.Exists(tyranoCssSrc))
+                File.Copy(tyranoCssSrc, Path.Combine(backupDir, "tyrano.tyrano.css.bak"), true);
+
             var themeCssSrc = Path.Combine(gameRoot, @"resources\app\data\others\plugin\theme_kopanda_24_FHD\tyrano.css");
             if (File.Exists(themeCssSrc))
-                File.Copy(themeCssSrc, Path.Combine(backupDir, "tyrano.css.bak"), true);
+                File.Copy(themeCssSrc, Path.Combine(backupDir, "theme.tyrano.css.bak"), true);
 
             Log("備份完成。", "success");
         }
@@ -108,7 +113,7 @@ namespace RaindropsInstaller.Services
             }
 
             var lines = File.ReadAllLines(configFile, Encoding.UTF8);
-            var replacement = $"userFace=\"{font.Name}\";";
+            var replacement = $";userFace={font.Name}";
             var pattern = new Regex(@"^\s*;?\s*userFace\s*=.*");
 
             for (int i = 0; i < lines.Length; i++)
@@ -123,31 +128,51 @@ namespace RaindropsInstaller.Services
 
         private void PatchThemeCss(string gameRoot, FontSetting font)
         {
-            var themeCss = Path.Combine(gameRoot,
-                @"resources\app\data\others\plugin\theme_kopanda_24_FHD\tyrano.css");
-
-            if (!File.Exists(themeCss))
+            var cssFiles = new[]
             {
-                Log("找不到主題 CSS，跳過字型覆寫。", "info");
+                Path.Combine(gameRoot, @"resources\app\tyrano\tyrano.css"),
+                Path.Combine(gameRoot, @"resources\app\data\others\plugin\theme_kopanda_24_FHD\tyrano.css"),
+            };
+
+            var fontFamily = font.Name;
+            var pattern = new Regex(@"font-family\s*:[^;]+;", RegexOptions.Singleline);
+
+            foreach (var cssFile in cssFiles)
+            {
+                if (!File.Exists(cssFile)) continue;
+
+                Log($"正在修正字型：{Path.GetFileName(Path.GetDirectoryName(cssFile))}\\tyrano.css ...", "info");
+                var content = File.ReadAllText(cssFile, Encoding.UTF8);
+                content = pattern.Replace(content, $"font-family: '{fontFamily}', sans-serif;");
+                File.WriteAllText(cssFile, content, Encoding.UTF8);
+            }
+
+            Log("CSS 字型設定已全部更新。", "success");
+        }
+
+        private void PatchSaveFileFont(string gameRoot, FontSetting font)
+        {
+            var savFile = Path.Combine(gameRoot,
+                "One_in_20000_raindrops_tyrano_data.sav");
+
+            if (!File.Exists(savFile))
+            {
+                Log("未偵測到存檔，跳過字型修正。", "info");
                 return;
             }
 
-            Log("正在修正主題 CSS 字型設定...", "info");
-            var content = File.ReadAllText(themeCss, Encoding.UTF8);
+            Log("正在修正存檔中的字型設定...", "info");
+            var content = File.ReadAllText(savFile, Encoding.UTF8);
 
-            var fontFamily = font.Name;
-            content = Regex.Replace(content,
-                @"(\.vchat-name\s*\{[^}]*?)font-family\s*:[^;]+;",
-                $"$1font-family: {fontFamily}, sans-serif;");
-            content = Regex.Replace(content,
-                @"(\.vchat-text\s*\{[^}]*?)font-family\s*:[^;]+;",
-                $"$1font-family: {fontFamily}, sans-serif;");
-            content = Regex.Replace(content,
-                @"(\.vertical_text\s*\{[^}]*?)font-family\s*:[^;]+;",
-                $"$1font-family: '@{fontFamily}';");
+            var encodedFont = Uri.EscapeDataString(font.Name).Replace("%20", "%20");
+            var replacement = "font-family%3A%20" + encodedFont;
 
-            File.WriteAllText(themeCss, content, Encoding.UTF8);
-            Log("主題 CSS 字型已更新。", "success");
+            content = Regex.Replace(content,
+                @"font-family%3A%20[^%;]+(%2C%20[^%;]+)*",
+                replacement);
+
+            File.WriteAllText(savFile, content, Encoding.UTF8);
+            Log("存檔字型已更新。", "success");
         }
 
         private void ClearElectronCache()
