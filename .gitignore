@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .claude/
 _reinject_warnings.txt
+*_review.md
 AGENTS.md
 CLAUDE.md
 CODING_STYLE.md
