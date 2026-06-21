@@ -137,6 +137,24 @@ try {
         }
     }
 
+    function Install-NotoSerifTC([string]$gameRoot) {
+        $fontCss = Join-Path $gameRoot "resources\app\tyrano\css\font.css"
+        if (Test-Path $fontCss) {
+            $cssContent = [System.IO.File]::ReadAllText($fontCss, [System.Text.Encoding]::UTF8)
+            if ($cssContent -notmatch 'NotoSerifTC') {
+                Write-Host "[進度] 正在載入思源宋體字型（NotoSerifTC）..." -ForegroundColor Green
+                $notoFace = " @font-face { font-family: 'NotoSerifTC'; src: url('../../data/others/NotoSerifTC-VF.ttf') format('truetype'); font-weight:normal;font-style:normal; }"
+                $cssContent = $cssContent.TrimEnd() + "`n" + $notoFace + "`n"
+                [System.IO.File]::WriteAllText($fontCss, $cssContent, [System.Text.Encoding]::UTF8)
+                Write-Host "[成功] 思源宋體已載入。" -ForegroundColor Green
+            } else {
+                Write-Host "[提示] 思源宋體字型已載入，跳過。" -ForegroundColor Green
+            }
+        } else {
+            Write-Host "[警告] 找不到 font.css，無法載入內建字型。" -ForegroundColor Yellow
+        }
+    }
+
     function Apply-Font([string]$configFile, [hashtable]$font) {
         Write-Host ""
         Write-Host "[進度] 正在設定字型為「$($font.Description)」..." -ForegroundColor Green
@@ -187,6 +205,7 @@ try {
     }
     Write-Host "[成功] 中文劇本覆蓋完成。" -ForegroundColor Green
 
+    Install-NotoSerifTC -gameRoot $gameRoot
     $font = Select-Font
     Apply-Font -configFile $configFile -font $font
 
