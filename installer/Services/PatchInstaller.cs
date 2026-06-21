@@ -26,11 +26,11 @@ namespace RaindropsInstaller.Services
             InjectFontCss(gameRoot);
             UpdateConfigTjs(configFile, font);
             PatchThemeCss(gameRoot, font);
-            PatchSaveFileFont(gameRoot, font);
-            ClearElectronCache();
 
             Log("", "info");
             Log("安裝完成！您可以直接啟動遊戲了。", "success");
+            if (File.Exists(Path.Combine(gameRoot, "One_in_20000_raindrops_tyrano_data.sav")))
+                Log("注意：已有存檔的字型會在下次存檔時自動更新。", "info");
             Log("如需還原，請將 scenario_backup 內的檔案覆蓋回 scenario 即可。", "info");
         }
 
@@ -148,58 +148,6 @@ namespace RaindropsInstaller.Services
             }
 
             Log("CSS 字型設定已全部更新。", "success");
-        }
-
-        private void PatchSaveFileFont(string gameRoot, FontSetting font)
-        {
-            var savFile = Path.Combine(gameRoot,
-                "One_in_20000_raindrops_tyrano_data.sav");
-
-            if (!File.Exists(savFile))
-            {
-                Log("未偵測到存檔，跳過字型修正。", "info");
-                return;
-            }
-
-            Log("正在修正存檔中的字型設定...", "info");
-            var content = File.ReadAllText(savFile, Encoding.UTF8);
-
-            var encodedFont = Uri.EscapeDataString(font.Name)
-                .Replace("+", "%20");
-            var replacement = "font-family%3A%20" + encodedFont;
-
-            // font-family value ends at %3B (;) in URL-encoded save data
-            content = Regex.Replace(content,
-                @"font-family%3A%20(?:(?!%3B).)+",
-                replacement);
-
-            File.WriteAllText(savFile, content, Encoding.UTF8);
-            Log("存檔字型已更新。", "success");
-        }
-
-        private void ClearElectronCache()
-        {
-            var cacheDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "tyranogame");
-
-            if (!Directory.Exists(cacheDir))
-            {
-                Log("未偵測到 Electron 快取，跳過。", "info");
-                return;
-            }
-
-            Log("正在清除 Electron 快取（避免首次啟動失敗）...", "info");
-            try
-            {
-                Directory.Delete(cacheDir, true);
-                Log("Electron 快取已清除。", "success");
-            }
-            catch (Exception ex)
-            {
-                Log($"快取清除失敗（遊戲可能正在執行）：{ex.Message}", "warn");
-                Log("如首次啟動異常，請關閉遊戲後重新啟動即可。", "warn");
-            }
         }
 
         private void CopyDirectory(string source, string destination)
