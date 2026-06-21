@@ -21,7 +21,10 @@
 | 一ノ瀬 蓮 | 一之瀨 蓮 | _preview.ks |
 | 中村 | 中村 | scene1.ks |
 | 久我 さゆり | 久我 小百合 | scene1.ks |
-| 久我っち | 小久我 | scene1.ks（暱稱） |
+| 久我っち | 小久我 | scene1.ks（里中暱稱） |
+| 瑠璃っち | 小瑠璃 | scene1.ks（里中暱稱） |
+| 双葉っち | 小雙葉 | scene1.ks（里中暱稱） |
+| 石橋っち | 小石橋 | scene6.ks（里中暱稱） |
 | 久我 聡 | 久我 聰 | _preview.ks |
 | 住職 | 住持 | scene4.ks |
 | 先生 | 老師 | scene6.ks |
