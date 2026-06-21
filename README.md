@@ -28,37 +28,40 @@
 
 ## 安裝方式
 
-我們提供了一鍵安裝腳本，讓安裝過程變得非常簡單！不再需要手動找遊戲資料夾。
+提供圖形化一鍵安裝程式，不需要任何技術知識！
 
 ### 1. 下載並解壓縮
-下載本補丁的壓縮檔，並將其解壓縮到您電腦上的任何地方（桌面、下載資料夾皆可）。
-資料夾內應包含 `patched` 資料夾、`install.bat` 與 `install.ps1` 與`install.vbs`。
+下載本補丁的壓縮檔，解壓縮到任何地方（桌面、下載資料夾皆可）。
 
-### 2. 執行安裝
-雙擊執行 `install.vbs`。
-腳本會**自動在您的電腦中尋找遊戲的安裝位置**（支援 Steam 版自動偵測）。
-如果自動尋找失敗，腳本會提示您手動將遊戲資料夾拖曳進視窗。
+### 2. 執行安裝程式
+雙擊 **`RaindropsInstaller.exe`** 啟動安裝介面。
 
-### 3. 字型設定
-腳本會自動完成備份與劇本安裝，接著會提示您選擇想要的遊戲顯示字型（推薦選擇 `1` 微軟正黑體）。
+安裝程式會：
+- **自動偵測** Steam 遊戲安裝位置（也可手動瀏覽選擇）
+- 讓您選擇遊戲顯示字型（推薦「思源宋體」）
+- 自動備份原始檔案、安裝翻譯補丁、設定字型
 
-看到「安裝完成！」提示後，即可關閉視窗，正常啟動遊戲享受繁體中文！
+看到「安裝完成！」提示後，即可直接啟動遊戲享受繁體中文。
+
+> **備用方案：** 若 exe 無法執行，可雙擊 `install.bat` 或 `install.vbs`（需要 PowerShell）。
 
 ### 還原方法
-安裝腳本會自動在 `resources\app\data\` 下建立 `scenario_backup`。
-若要還原日文原版，只需將 `scenario_backup` 內的檔案覆蓋回 `scenario` 資料夾，或透過 Steam「驗證遊戲檔案完整性」即可還原。
+安裝程式會自動在遊戲目錄建立 `scenario_backup` 備份。
+若要還原日文原版，將 `scenario_backup` 內的檔案覆蓋回 `scenario` 資料夾，或透過 Steam「驗證遊戲檔案完整性」即可。
 
 ## 倉庫結構
 
 ```
-jp/              翻譯工作表（JSON），每個 .ks 劇本一個
-patched/         產生的補丁檔（已翻譯的 .ks 劇本）← 安裝時用這個
-_glossary.md     角色名與專有名詞對照表
-install.bat      一鍵安裝啟動器
-install.ps1      實際安裝流程腳本
+patched/                    補丁檔（已翻譯的 .ks 劇本）← 安裝時用這個
+jp/                         翻譯工作表（JSON），每個 .ks 劇本一個
+_glossary.md                角色名與專有名詞對照表
+RaindropsInstaller.exe      圖形化安裝程式（C# WPF）
+installer/                  安裝程式原始碼
+install.bat / install.vbs   備用安裝啟動器（fallback）
+install-gui.ps1             PowerShell GUI 安裝器（備用）
 tools/
-  extract.py     從遊戲 .ks 抽取日文到 JSON 工作表
-  reinject.py    將 JSON 中的翻譯回填成 .ks 補丁
+  extract.py                從遊戲 .ks 抽取日文到 JSON 工作表
+  reinject.py               將 JSON 中的翻譯回填成 .ks 補丁
 ```
 
 ## 已知問題
