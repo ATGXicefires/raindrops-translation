@@ -65,6 +65,18 @@ tools/
 - `_preview.ks`（試玩預覽）尚未完全翻譯，未翻譯的部分會保留日文原文
 - AI 翻譯可能存在語意不精確之處，後續會進行人工潤色
 
+## Steam Overlay / 截圖無法使用
+
+本遊戲使用 Electron 引擎，Steam Overlay（Shift+Tab）和 Steam 截圖（F12）預設無法正常運作。這是因為 Electron 的 Chromium 渲染管線與 Steam Overlay 的 DirectX/OpenGL hook 不相容。
+
+**修正方法：** 編輯遊戲目錄下的 `resources\app\main.js`，在檔案開頭的 `const app = electron.app;` 之後加上一行：
+
+```js
+app.commandLine.appendSwitch('in-process-gpu');
+```
+
+儲存後重新啟動遊戲即可。注意 Steam 更新遊戲時可能會覆蓋此修改，需要重新加上。
+
 ## 授權
 
 本補丁為非官方粉絲翻譯，僅供推廣用途。遊戲所有權利歸原作者所有。
