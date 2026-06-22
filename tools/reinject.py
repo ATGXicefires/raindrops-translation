@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-reinject.py — Write translated text from the jp/ JSON worksheets back into
-copies of the .ks scenario files, producing the patch under patched/.
+reinject.py — Write translated text from the zh_worksheets/ JSON worksheets back
+into copies of the .ks scenario files, producing the patch under zh_patched/.
 
 The game directory is READ-ONLY: originals are read but never modified.
-Output goes to <out>/patched/<relpath>.ks, mirroring the scenario tree.
+Output goes to <out>/zh_patched/<relpath>.ks, mirroring the scenario tree.
 
 Safety:
   * Each entry is matched by LINE NUMBER, then VERIFIED against the stored
@@ -14,7 +14,7 @@ Safety:
   * Original line endings (\\r\\n vs \\n) and UTF-8 (no BOM) are preserved.
 
 Tip: run a ROUND-TRIP TEST first — copy every `jp` into `zh`, reinject, then
-diff patched/ against the originals; they must be byte-identical.
+diff zh_patched/ against the originals; they must be byte-identical.
 
 Usage:
   python reinject.py  (auto-detects Steam installation)
@@ -103,7 +103,7 @@ def parse_args() -> argparse.Namespace:
                     help="path to the game's data/scenario folder (read-only)" + 
                          (" (auto-detected)" if default_game else ""))
     ap.add_argument("--out", default=DEFAULT_OUT,
-                    help="project folder containing jp/, output goes to patched/")
+                    help="project folder containing zh_worksheets/, output goes to zh_patched/")
     return ap.parse_args()
 
 
@@ -112,8 +112,8 @@ def main() -> None:
 
     game = os.path.abspath(args.game)
     out = os.path.abspath(args.out)
-    jp_dir = os.path.join(out, "jp")
-    patch_dir = os.path.join(out, "patched")
+    jp_dir = os.path.join(out, "zh_worksheets")
+    patch_dir = os.path.join(out, "zh_patched")
 
     backup = os.path.join(os.path.dirname(game), "scenario_backup")
     if os.path.isdir(backup):

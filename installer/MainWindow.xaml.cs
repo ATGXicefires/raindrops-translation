@@ -27,12 +27,12 @@ namespace RaindropsInstaller
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             _baseDir = FindBaseDirectory();
-            _patchDir = Path.Combine(_baseDir, "patched");
+            _patchDir = Path.Combine(_baseDir, "zh_patched");
 
             if (!Directory.Exists(_patchDir) || Directory.GetFiles(_patchDir, "*.ks").Length == 0)
             {
                 MessageBox.Show(
-                    "找不到 patched 資料夾或其中沒有 .ks 檔案。\n請確認您已經解壓縮「完整」的補丁檔案夾！",
+                    "找不到 zh_patched 資料夾或其中沒有 .ks 檔案。\n請確認您已經解壓縮「完整」的補丁檔案夾！",
                     "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
                 Close();
                 return;
@@ -273,13 +273,13 @@ namespace RaindropsInstaller
         private string FindBaseDirectory()
         {
             var exeDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
-            if (Directory.Exists(Path.Combine(exeDir, "patched")))
+            if (Directory.Exists(Path.Combine(exeDir, "zh_patched")))
                 return exeDir;
 
             var parent = Directory.GetParent(exeDir);
             while (parent != null)
             {
-                if (Directory.Exists(Path.Combine(parent.FullName, "patched")))
+                if (Directory.Exists(Path.Combine(parent.FullName, "zh_patched")))
                     return parent.FullName;
                 parent = parent.Parent;
             }

@@ -9,17 +9,17 @@ Add-Type -AssemblyName System.Drawing
 $scriptDir = $PSScriptRoot
 if (-not $scriptDir) { $scriptDir = (Get-Location).Path }
 
-$patchDir = Join-Path $scriptDir "patched"
+$patchDir = Join-Path $scriptDir "zh_patched"
 if (-not (Test-Path $patchDir)) {
     [System.Windows.MessageBox]::Show(
-        "找不到 patched 資料夾。`n請確認您已經解壓縮「完整」的補丁檔案夾！",
+        "找不到 zh_patched 資料夾。`n請確認您已經解壓縮「完整」的補丁檔案夾！",
         "錯誤", "OK", "Error") | Out-Null
     exit 1
 }
 $patchFiles = @(Get-ChildItem -LiteralPath $patchDir -Filter "*.ks" -ErrorAction SilentlyContinue)
 if ($patchFiles.Count -eq 0) {
     [System.Windows.MessageBox]::Show(
-        "patched 資料夾內找不到任何 .ks 劇本檔案。",
+        "zh_patched 資料夾內找不到任何 .ks 劇本檔案。",
         "錯誤", "OK", "Error") | Out-Null
     exit 1
 }

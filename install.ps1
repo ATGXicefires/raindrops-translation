@@ -287,15 +287,15 @@ try {
     $backupDir = Join-Path $gameRoot "resources\app\data\scenario_backup"
     $configFile = Join-Path $gameRoot "resources\app\data\system\Config.tjs"
     
-    $patchDir = Join-Path $scriptDir "patched"
+    $patchDir = Join-Path $scriptDir "zh_patched"
     if (-not (Test-Path $patchDir)) {
-        Write-Host "[錯誤] 找不到 patched 資料夾。請確認您已經解壓縮「完整」的補丁檔案夾！" -ForegroundColor Red
+        Write-Host "[錯誤] 找不到 zh_patched 資料夾。請確認您已經解壓縮「完整」的補丁檔案夾！" -ForegroundColor Red
         Pause-And-Exit 1
     }
 
     $patchFiles = @(Get-ChildItem -LiteralPath $patchDir -Filter "*.ks" -ErrorAction SilentlyContinue)
     if ($patchFiles.Count -eq 0) {
-        Write-Host "[錯誤] patched 資料夾內找不到任何 .ks 劇本檔案。" -ForegroundColor Red
+        Write-Host "[錯誤] zh_patched 資料夾內找不到任何 .ks 劇本檔案。" -ForegroundColor Red
         Pause-And-Exit 1
     }
 

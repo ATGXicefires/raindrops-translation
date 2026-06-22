@@ -162,7 +162,7 @@ def main() -> None:
         print("ERROR: scenario folder not found:\n  " + game)
         sys.exit(1)
 
-    jp_dir = os.path.join(out, "jp")
+    jp_dir = os.path.join(out, "zh_worksheets")
     os.makedirs(jp_dir, exist_ok=True)
 
     ks_files = []
@@ -232,7 +232,7 @@ def write_glossary(out: str, names: dict[str, str]) -> None:
     with open(p, "w", encoding="utf-8") as f:
         f.write("# 翻譯術語表 / 譯者須知\n\n")
         f.write("## 給譯者（Opus 4.6）的規則\n\n")
-        f.write("逐檔翻譯 `jp/` 下的 JSON：**只填每個 entry 的 `zh` 欄**，"
+        f.write("逐檔翻譯 `zh_worksheets/` 下的 JSON：**只填每個 entry 的 `zh` 欄**，"
                 "其餘欄位（id / line / type / jp）一律不要改。\n\n")
         f.write("標籤規則：\n")
         f.write("- `[...]` 中括號是引擎指令，**原樣保留**。最常見的 `[p]`（換頁）"
