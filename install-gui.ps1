@@ -461,6 +461,52 @@ function Apply-SteamOverlay([string]$gameRoot) {
     Write-Log "Steam Overlay 修正已套用；若日後 Steam 更新遊戲被還原，需重新執行。" "success"
 }
 
+# 找出所有「執行檔路徑位於 gameRoot 底下」的行程——
+# 涵蓋 Electron 主程序與所有 helper 子行程，不需寫死 exe 名稱。
+function Get-GameProcesses([string]$gameRoot) {
+    $root = [System.IO.Path]::GetFullPath($gameRoot).TrimEnd('\', '/') + '\'
+    Get-Process | Where-Object {
+        $p = $null
+        try { $p = $_.Path } catch { $p = $null }
+        $p -and $p.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)
+    }
+}
+
+# 安裝前確認遊戲已關閉；回傳 $false 表示使用者取消。
+function Assert-GameClosed([string]$gameRoot) {
+    while ($true) {
+        $procs = @(Get-GameProcesses $gameRoot)
+        if ($procs.Count -eq 0) { return $true }
+
+        $choice = [System.Windows.MessageBox]::Show(
+            "偵測到遊戲正在執行，必須先關閉才能正確套用補丁`n（否則換檔後第一次啟動可能打不開）。`n`n" +
+            "要讓安裝程式直接強制關閉遊戲嗎？`n`n" +
+            "・「是」＝強制關閉遊戲（尚未存檔的進度會遺失）`n" +
+            "・「否」＝我自己關，請重新偵測`n" +
+            "・「取消」＝中止安裝",
+            "請先關閉遊戲", "YesNoCancel", "Warning", "No")
+
+        if ($choice -eq "Cancel") {
+            Write-Log "已取消安裝（偵測到遊戲仍在執行）。" "warn"
+            return $false
+        }
+        if ($choice -eq "Yes") {
+            Write-Log "正在強制關閉遊戲..."
+            foreach ($p in $procs) { try { $p.Kill() } catch {} }
+            # 等待行程真正退出（最多約 8 秒）
+            for ($i = 0; $i -lt 40; $i++) {
+                Start-Sleep -Milliseconds 200
+                if (@(Get-GameProcesses $gameRoot).Count -eq 0) { break }
+            }
+            if (@(Get-GameProcesses $gameRoot).Count -eq 0) {
+                Write-Log "遊戲已關閉。" "success"
+            } else {
+                Write-Log "部分遊戲行程仍未結束，將重新偵測。" "warn"
+            }
+        }
+    }
+}
+
 function Clear-ElectronCache {
     $cacheRoot = Join-Path $env:APPDATA "tyranogame"
     if (-not (Test-Path $cacheRoot)) {
@@ -478,11 +524,22 @@ function Clear-ElectronCache {
     foreach ($name in $cacheSubDirs) {
         $dir = Join-Path $cacheRoot $name
         if (-not (Test-Path $dir)) { continue }
-        try {
-            Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+        # 關視窗到 process 真正消失有時間差，鎖檔可能還沒釋放；重試幾次再放棄。
+        $lastErr = $null
+        for ($attempt = 0; $attempt -lt 3; $attempt++) {
+            try {
+                Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+                $lastErr = $null
+                break
+            } catch {
+                $lastErr = $_
+                Start-Sleep -Milliseconds 300
+            }
+        }
+        if ($null -eq $lastErr) {
             $cleared++
-        } catch {
-            Write-Log "無法清除快取「$name」（遊戲可能正在執行）：$($_.Exception.Message)" "warn"
+        } else {
+            Write-Log "無法清除快取「$name」（遊戲可能正在執行）：$($lastErr.Exception.Message)" "warn"
         }
     }
     if ($cleared -gt 0) {
@@ -662,6 +719,10 @@ $btnInstall.Add_Click({
                 return
             }
         }
+    }
+
+    if (-not (Assert-GameClosed $gamePath)) {
+        return
     }
 
     $btnInstall.IsEnabled = $false

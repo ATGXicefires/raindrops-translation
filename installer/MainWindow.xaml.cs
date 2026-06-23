@@ -185,6 +185,9 @@ namespace RaindropsInstaller
                 }
             }
 
+            if (!EnsureGameClosed(gamePath))
+                return;
+
             SetControlsEnabled(false);
             try
             {
@@ -203,6 +206,45 @@ namespace RaindropsInstaller
             finally
             {
                 SetControlsEnabled(true);
+            }
+        }
+
+        /// <summary>
+        /// 安裝前確認遊戲（含 Electron 子行程）已關閉。
+        /// 回傳 false 表示使用者選擇取消、應中止安裝。
+        /// </summary>
+        private bool EnsureGameClosed(string gameRoot)
+        {
+            while (true)
+            {
+                var procs = _patchInstaller.GetRunningGameProcesses(gameRoot);
+                var count = procs.Count;
+                foreach (var p in procs) p.Dispose();
+                if (count == 0) return true;
+
+                var choice = MessageBox.Show(
+                    "偵測到遊戲正在執行，必須先關閉才能正確套用補丁\n（否則換檔後第一次啟動可能打不開）。\n\n" +
+                    "要讓安裝程式直接強制關閉遊戲嗎？\n\n" +
+                    "・「是」＝強制關閉遊戲（尚未存檔的進度會遺失）\n" +
+                    "・「否」＝我自己關，請重新偵測\n" +
+                    "・「取消」＝中止安裝",
+                    "請先關閉遊戲", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning,
+                    MessageBoxResult.No);
+
+                if (choice == MessageBoxResult.Cancel)
+                {
+                    WriteLog("已取消安裝（偵測到遊戲仍在執行）。", "warn");
+                    return false;
+                }
+                if (choice == MessageBoxResult.Yes)
+                {
+                    WriteLog("正在強制關閉遊戲...", "info");
+                    if (_patchInstaller.KillGameProcesses(gameRoot))
+                        WriteLog("遊戲已關閉。", "success");
+                    else
+                        WriteLog("部分遊戲行程仍未結束，將重新偵測。", "warn");
+                }
+                // 「是」或「否」都回到迴圈頂端重新偵測，確認真的沒有殘留行程
             }
         }
 

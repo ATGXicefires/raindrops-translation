@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace RaindropsInstaller.Services
 {
@@ -38,6 +41,75 @@ namespace RaindropsInstaller.Services
             if (File.Exists(Path.Combine(gameRoot, "One_in_20000_raindrops_tyrano_data.sav")))
                 Log("注意：已有存檔的字型會在下次存檔時自動更新。", "info");
             Log("如需還原，請將 scenario_backup 內的檔案覆蓋回 scenario 即可。", "info");
+        }
+
+        /// <summary>
+        /// 找出所有「執行檔路徑位於 gameRoot 底下」的行程——
+        /// 涵蓋 Electron 主程序與所有 helper 子行程，不需寫死 exe 名稱。
+        /// 取不到路徑的行程（權限不足／位元數不符）一律略過。
+        /// 呼叫端用完務必 Dispose 回傳的 Process。
+        /// </summary>
+        public List<Process> GetRunningGameProcesses(string gameRoot)
+        {
+            var result = new List<Process>();
+            string root;
+            try
+            {
+                root = Path.GetFullPath(gameRoot)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar;
+            }
+            catch
+            {
+                return result;
+            }
+
+            foreach (var proc in Process.GetProcesses())
+            {
+                string exePath = null;
+                try { exePath = proc.MainModule?.FileName; }
+                catch { /* Win32Exception / InvalidOperationException：取不到就跳過 */ }
+
+                if (!string.IsNullOrEmpty(exePath) &&
+                    exePath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    result.Add(proc);
+                else
+                    proc.Dispose();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 終結所有位於 gameRoot 底下的行程，並等待它們真正退出。
+        /// 回傳 true 表示逾時前全部結束。
+        /// </summary>
+        public bool KillGameProcesses(string gameRoot, int timeoutMs = 8000)
+        {
+            foreach (var proc in GetRunningGameProcesses(gameRoot))
+            {
+                try
+                {
+                    if (!proc.HasExited) proc.Kill();
+                }
+                catch { /* 已退出或無權限，忽略 */ }
+                finally { proc.Dispose(); }
+            }
+
+            // 輪詢等待，直到沒有任何相關行程或逾時
+            var deadline = Environment.TickCount + timeoutMs;
+            while (Environment.TickCount < deadline)
+            {
+                var remaining = GetRunningGameProcesses(gameRoot);
+                var count = remaining.Count;
+                foreach (var p in remaining) p.Dispose();
+                if (count == 0) return true;
+                Thread.Sleep(200);
+            }
+
+            var leftover = GetRunningGameProcesses(gameRoot);
+            var stillRunning = leftover.Count;
+            foreach (var p in leftover) p.Dispose();
+            return stillRunning == 0;
         }
 
         private void BackupSaves(string gameRoot)
@@ -287,15 +359,28 @@ namespace RaindropsInstaller.Services
             {
                 var dir = Path.Combine(cacheRoot, name);
                 if (!Directory.Exists(dir)) continue;
-                try
+
+                // 關視窗到 process 真正消失有時間差，鎖檔可能還沒釋放；重試幾次再放棄。
+                Exception lastError = null;
+                for (int attempt = 0; attempt < 3; attempt++)
                 {
-                    Directory.Delete(dir, true);
+                    try
+                    {
+                        Directory.Delete(dir, true);
+                        lastError = null;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = ex;
+                        Thread.Sleep(300);
+                    }
+                }
+
+                if (lastError == null)
                     cleared++;
-                }
-                catch (Exception ex)
-                {
-                    Log($"無法清除快取「{name}」（遊戲可能正在執行）：{ex.Message}", "warn");
-                }
+                else
+                    Log($"無法清除快取「{name}」（遊戲可能正在執行）：{lastError.Message}", "warn");
             }
 
             if (cleared > 0)

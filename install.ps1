@@ -268,17 +268,70 @@ try {
         foreach ($name in $cacheSubDirs) {
             $dir = Join-Path $cacheRoot $name
             if (-not (Test-Path $dir)) { continue }
-            try {
-                Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+            # 關視窗到 process 真正消失有時間差，鎖檔可能還沒釋放；重試幾次再放棄。
+            $lastErr = $null
+            for ($attempt = 0; $attempt -lt 3; $attempt++) {
+                try {
+                    Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+                    $lastErr = $null
+                    break
+                } catch {
+                    $lastErr = $_
+                    Start-Sleep -Milliseconds 300
+                }
+            }
+            if ($null -eq $lastErr) {
                 $cleared++
-            } catch {
-                Write-Host "[警告] 無法清除快取「$name」（遊戲可能正在執行）：$($_.Exception.Message)" -ForegroundColor Yellow
+            } else {
+                Write-Host "[警告] 無法清除快取「$name」（遊戲可能正在執行）：$($lastErr.Exception.Message)" -ForegroundColor Yellow
             }
         }
         if ($cleared -gt 0) {
             Write-Host "[成功] Electron 快取已清除（$cleared 項），存檔保持不動。" -ForegroundColor Green
         } else {
             Write-Host "[提示] 沒有需要清除的快取。" -ForegroundColor Green
+        }
+    }
+
+    # 找出所有「執行檔路徑位於 gameRoot 底下」的行程——
+    # 涵蓋 Electron 主程序與所有 helper 子行程，不需寫死 exe 名稱。
+    function Get-GameProcesses([string]$gameRoot) {
+        $root = [System.IO.Path]::GetFullPath($gameRoot).TrimEnd('\', '/') + '\'
+        Get-Process | Where-Object {
+            $p = $null
+            try { $p = $_.Path } catch { $p = $null }
+            $p -and $p.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)
+        }
+    }
+
+    # 安裝前確認遊戲已關閉；回傳 $false 表示使用者取消。
+    function Assert-GameClosed([string]$gameRoot) {
+        while ($true) {
+            $procs = @(Get-GameProcesses $gameRoot)
+            if ($procs.Count -eq 0) { return $true }
+
+            Write-Host ""
+            Write-Host "[警告] 偵測到遊戲正在執行，必須先關閉才能正確套用補丁" -ForegroundColor Yellow
+            Write-Host "       （否則換檔後第一次啟動可能打不開）。" -ForegroundColor Yellow
+            $ans = Read-Host "關閉遊戲後按 Enter 重新偵測／輸入 K 強制關閉／輸入 Q 取消"
+            if ($ans -match '^[Qq]') {
+                Write-Host "[警告] 已取消安裝（偵測到遊戲仍在執行）。" -ForegroundColor Yellow
+                return $false
+            }
+            if ($ans -match '^[Kk]') {
+                Write-Host "[進度] 正在強制關閉遊戲..." -ForegroundColor Green
+                foreach ($p in $procs) { try { $p.Kill() } catch {} }
+                # 等待行程真正退出（最多約 8 秒）
+                for ($i = 0; $i -lt 40; $i++) {
+                    Start-Sleep -Milliseconds 200
+                    if (@(Get-GameProcesses $gameRoot).Count -eq 0) { break }
+                }
+                if (@(Get-GameProcesses $gameRoot).Count -eq 0) {
+                    Write-Host "[成功] 遊戲已關閉。" -ForegroundColor Green
+                } else {
+                    Write-Host "[警告] 部分遊戲行程仍未結束，將重新偵測。" -ForegroundColor Yellow
+                }
+            }
         }
     }
 
@@ -296,6 +349,10 @@ try {
     $patchFiles = @(Get-ChildItem -LiteralPath $patchDir -Filter "*.ks" -ErrorAction SilentlyContinue)
     if ($patchFiles.Count -eq 0) {
         Write-Host "[錯誤] zh_patched 資料夾內找不到任何 .ks 劇本檔案。" -ForegroundColor Red
+        Pause-And-Exit 1
+    }
+
+    if (-not (Assert-GameClosed $gameRoot)) {
         Pause-And-Exit 1
     }
 
